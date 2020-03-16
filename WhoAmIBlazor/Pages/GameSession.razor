@@ -1,0 +1,115 @@
+﻿@page "/game/{id}";
+@using WhoAmIGameLogic;
+@using WhoAmIBlazor.GameManagment;
+@using Blazored.LocalStorage;
+@inject IGameManager GameManager;
+@inject ILocalStorageService localStorageService;
+@inject NavigationManager NavManager;
+
+<div class="container-lg">
+    @if (game != null)
+    {
+    <div class="row" style="min-height:500px">
+        <div class="col-12 col-sm-3">
+
+        </div>
+        <div class="col-12 col-sm-6">
+
+        </div>
+        <div class="col-12 col-sm-3">
+            <div class="chat" style="display:flex; flex-direction:column-reverse; height:80vh; overflow-y:scroll">
+                @foreach (var item in this.game.Chat.Messages)
+                {
+
+                    <div class="chatitem" style="margin-top:20px; background-color:@(item.Item1 == _player ? "lightgreen" : "none")">
+                        <b>@item.Item1.DisplayName: </b>
+                        <span class="msg">@item.Item2</span>
+                    </div>
+                }
+            </div>
+            <div class="chat-input">
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" @bind="chatmessage" @onkeydown="ChatKeyPressed" placeholder="Proposal" aria-label="Proposal" aria-describedby="basic-addon2">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-primary" @onclick="SendMessage" type="button">&rarr;</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    }
+    else
+    {
+        <div class="waiting-text">Waiting ...</div>
+    }
+</div>
+
+@code {
+
+    private Game game;
+    [Parameter]
+    public string Id { get; set; }
+
+    private Player _player { get; set; }
+
+    private string chatmessage = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Init();
+        }
+    }
+    private async Task Init()
+    {
+        this.game = this.GameManager.GetGame(Id);
+
+        if (game == null)
+        {
+            GameDoesNotExist();
+        }
+        string playerId = await localStorageService.GetItemAsync<string>(StorageKeys.PlayerId);
+        _player = this.game.Players.FirstOrDefault(item => item.PlayerId == playerId);
+
+        if (_player == null)
+        {
+            PlayerNotInGame();
+            return;
+
+        }
+        StateHasChanged();
+        this.game.StateChanged += async (obj, ev) =>
+        {
+            await InvokeAsync(() =>
+            {
+                StateHasChanged();
+
+            });
+        };
+    }
+    public void PlayerNotInGame()
+    {
+        NavManager.NavigateTo("/");
+    }
+    public void GameDoesNotExist()
+    {
+        NavManager.NavigateTo("/");
+    }
+    public void SendMessage()
+    {
+        if (String.IsNullOrWhiteSpace(this.chatmessage))
+            return;
+        string msg = this.chatmessage;
+        this.chatmessage = "";
+        this.game.Chat.AddMessage(_player, msg);
+    }
+    void ChatKeyPressed(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            SendMessage();
+        }
+    }
+
+}

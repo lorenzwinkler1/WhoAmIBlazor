@@ -1,0 +1,57 @@
+﻿@page "/joinlobby/{id}";
+@inject NavigationManager NavigationManager
+@using Blazored.LocalStorage;
+@using WhoAmIGameLogic;
+@using WhoAmIBlazor.GameManagment;
+@inject IGameManager gameManager;
+@inject ILocalStorageService localStorageService;
+
+<h3>Join Lobby</h3>
+
+<input type="text" @bind="name" />
+<button class="btn btn-primary" @onclick="JoinLobby">Join Lobby</button>
+
+@code {
+    private string name;
+    private Game game;
+    [Parameter]
+    public string Id { get; set; }
+
+    private async void JoinLobby()
+    {
+        try
+        {
+            string playerid = GameManager.GenerateRandomString(10);
+            await localStorageService.SetItemAsync(StorageKeys.PlayerId, playerid);
+            this.game.AddPlayer(new Player()
+            {
+                DisplayName = name,
+                PlayerId = playerid,
+            });
+            NavigationManager.NavigateTo("/lobby/" + Id);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        this.game = this.gameManager.GetGame(Id);
+        if (game == null)
+        {
+            RouteToRoot();
+        }
+        if (game.GameState != GameState.Idle)
+        {
+            RouteToRoot();
+        }
+    }
+    private void RouteToRoot()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+}

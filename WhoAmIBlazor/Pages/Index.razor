@@ -1,0 +1,29 @@
+﻿@page "/"
+@using WhoAmIBlazor.GameManagment;
+@inject IGameManager GameManager;
+@inject NavigationManager NavManager;
+
+
+<button class="btn btn-primary" @onclick="CreateGame">Neues Spiel erstellen</button>
+<br />
+<div class="input-group mb-3">
+    <input type="text" class="form-control" @bind="Inputcode" placeholder="Game ID" aria-label="Game Id" aria-describedby="basic-addon2">
+    <div class="input-group-append">
+        <button class="btn btn-outline-primary" @onclick="JoinGame" type="button">Beitreten</button>
+    </div>
+</div>
+@code{
+
+    private string Inputcode { get; set; }
+    public void CreateGame()
+    {
+        string id = this.GameManager.CreateGame();
+
+        NavManager.NavigateTo("/joinlobby/" + id);
+    }
+
+    public void JoinGame()
+    {
+        NavManager.NavigateTo("/joinlobby/" + Inputcode);
+    }
+}

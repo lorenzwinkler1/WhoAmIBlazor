@@ -1,0 +1,181 @@
+﻿@page "/lobby/{id}";
+@using WhoAmIGameLogic;
+@using WhoAmIBlazor.GameManagment;
+@using Blazored.LocalStorage;
+@inject IGameManager GameManager;
+@inject ILocalStorageService localStorageService;
+@inject NavigationManager NavManager;
+<h3>Lobby</h3>
+
+@if (_player != null)
+{
+    @if (game.Players != null && game.Players.Count() > 0)
+    {
+        <table class="table table-striped">
+
+            @foreach (var (player, index) in game.Players.Select((item, index) => (item, index)))
+            {
+
+
+
+
+                @if (player.PlayerId == _player.PlayerId)
+                {
+
+                    <tr>
+                        <td class="text-primary">
+                            @player.DisplayName
+                        </td>
+                        <td>
+                        </td>
+                        <td>
+                            @foreach (var item in player.RoleProposals)
+                            {
+                                <button type="button" class="btn btn-outline-primary" @onclick="@(()=> { ProposeName(player, item.Key,1); })" disabled>
+                                    Someone
+                                    <span class="badge badge-secondary">@item.Value.Count()</span>
+                                </button>
+
+                            }
+                        </td>
+                    </tr>
+                }
+                else
+                {
+
+                    <tr class="">
+                        <td>
+                            @player.DisplayName
+                        </td>
+                        <td style="width:250px">
+                            <div class="input-group mb-3">
+                                <input type="text" class="form-control" @bind="proposals[index].Value" placeholder="Proposal" aria-label="Proposal" aria-describedby="basic-addon2">
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-primary" @onclick="@(()=> { ProposeName(player, proposals[index].Value, index); })" type="button">&rarr;</button>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            @foreach (var item in player.RoleProposals)
+                            {
+                                var cssclass = item.Value.Contains(_player) ? "btn-primary" : "btn-outline-primary";
+
+                                <button type="button" class="btn @cssclass" @onclick="@(()=> { ProposeName(player, item.Key,1); })">
+                                    @item.Key
+                                    <span class="badge badge-secondary">@item.Value.Count()</span>
+                                </button>
+
+                            }
+                        </td>
+                    </tr>
+                }
+            }
+        </table>
+
+        @if (CanStart())
+        {
+            <button class="btn btn-success" @onclick="StartGame">Spiel starten</button>
+        }
+        else
+        {
+            <button class="btn btn-success" disabled>Spiel starten</button>
+        }
+    }
+    else
+    {
+        <div class="msg-no-players">Noch keine Spieler</div>
+    }
+}
+else
+{
+    <div>Du bist nicht in diesem Spiel :/</div>
+}
+
+@code {
+    private Game game;
+    [Parameter]
+    public string Id { get; set; }
+
+    private Player _player { get; set; }
+
+    private Container<string>[] proposals;
+
+    private bool CanStart()
+    {
+        if (_player == null || game == null || game.Players == null)
+            return false;
+        return !game.Players.Any((pl) =>
+        {
+            return pl.RoleProposals.Count() == 0;
+        });
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Init();
+        }
+    }
+
+    protected async Task Init()
+    {
+        this.proposals = Enumerable.Range(1, 1000).Select((item) => new Container<string>()).ToArray();
+        await base.OnInitializedAsync();
+        this.game = this.GameManager.GetGame(Id);
+        if (game == null)
+        {
+            GameDoesNotExist();
+            return;
+        }
+        string playerId = await localStorageService.GetItemAsync<string>(StorageKeys.PlayerId);
+        _player = this.game.Players.FirstOrDefault(item => item.PlayerId == playerId);
+
+        if (_player == null)
+        {
+            PlayerNotInGame();
+            return;
+
+        }
+        StateHasChanged();
+        this.game.StateChanged += async (obj, ev) =>
+        {
+            await InvokeAsync(() =>
+            {
+                StateHasChanged();
+
+            });
+        };
+    }
+
+    public void PlayerNotInGame()
+    {
+        NavManager.NavigateTo("/joinlobby/" + Id);
+    }
+    public void GameDoesNotExist()
+    {
+        NavManager.NavigateTo("/");
+    }
+
+    public void ProposeName(Player player, string proposal, int i)
+    {
+        player.ProposeRole(proposal, _player);
+    }
+
+    class Container<T>
+    {
+        public T Value { get; set; } = default;
+    }
+
+    public void StartGame()
+    {
+        if (!CanStart())
+            return;
+
+        foreach (var player in game.Players)
+        {
+            player.RoleName = player.RoleProposals.OrderByDescending(item => item.Value.Count).First().Key;
+        }
+        NavManager.NavigateTo("/game/" + Id);
+    }
+}

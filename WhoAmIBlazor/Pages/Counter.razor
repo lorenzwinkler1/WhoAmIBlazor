@@ -1,0 +1,38 @@
+﻿@page "/counter"
+@using WhoAmIBlazor.GameManagment;
+@inject IGameManager GameManager;
+
+<h1>Counter</h1>
+
+<p>Current count: @currentCount</p>
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+
+<input type="text" @bind="name" />
+<button class="btn btn-primary"  @onclick="ChangeName">Name ändern</button>
+
+@code {
+    private int currentCount = 0;
+    private string name = "asdf";
+
+    private void ChangeName()
+    {
+        this.GameManager.Name = name;
+    }
+    private void IncrementCount()
+    {
+        currentCount++;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        this.GameManager.NameChanged += async (obj, ev) =>
+        {
+            await InvokeAsync(() =>
+            {
+                this.name = (string)obj;
+                StateHasChanged();
+            });
+        };
+    }
+}
