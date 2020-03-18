@@ -7,16 +7,16 @@
 @inject NavigationManager NavManager;
 
 <div class="container-lg">
-    @if (game != null)
+    @if (game != null && round != null)
     {
         <div class="row" style="min-height:500px">
             <div class="col-12 col-sm-3" style="border-right:1px solid lightgray">
                 <div class="flex-column">
                     @foreach (var player in this.game.Players)
                     {
-                        <div class="card mb-3" style="@(player==this.game.Round.CurrentPlayer?"border-color:green":"")">
+                        <div class="card mb-3" style="@(player==this.round.CurrentPlayer?"border-color:green":"")">
                             <div class="row no-gutters">
-                                <div class="col-md-4 bg-danger">
+                                <div class="col-md-4 @(player.CorrectGuess?"bg-success":"bg-danger")">
                                 </div>
 
                                 @if (player == _player)
@@ -49,18 +49,115 @@
                     <div class="countdownround">
                         <h2 style="width:100%; text-align:center">@this.round.TimeRemaining</h2>
                     </div>
-                    @if (this.game.Round.CurrentPlayer == _player)
+                    @if (this.round.CurrentPlayer == _player)
                     {
-                        <div class="">
+                        <div class="row">
+                            <div class="col-6 flex-column">
+                                <h2>Your previous Questions: </h2>
+                                @foreach (var item in _player.Guesses)
+                                {
+                                    <div class="guess" style="border-bottom:1px solid lightgray">
+                                        @item.Item1
+                                        <span style="color:@(item.Item2?"green":"red")">
+                                            @(item.Item2 ? "True" : "False")
+                                        </span>
+                                    </div>
+                                }
+                            </div>
+                            <div class="col-6 flex-column">
+                                <h2>Your Move: </h2>
+                                @if (String.IsNullOrWhiteSpace(this.round.Question))
+                                {
+                                    <div class="input-group mb-3">
+                                        <div class="input-group-prepend">
+                                            <button class="btn @(this.round.QType==QuestionTypes.Question?"btn-primary":"brn-outline-primary")" type="button" @onclick="BtnQuestionClick">Question</button>
+                                        </div>
+
+                                        <div class="input-group-append">
+                                            <button class="btn @(this.round.QType==QuestionTypes.Guess?"btn-primary":"brn-outline-primary")" type="button" @onclick="BtnGuessClick">Guess</button>
+                                        </div>
+                                    </div>
+                                    <div class="input-group mb-3">
+
+                                        <input type="text" class="form-control" @bind="question" placeholder="Proposal" aria-label="Proposal" aria-describedby="basic-addon2">
+                                        <div class="input-group-append">
+                                            <button class="btn btn-outline-primary" @onclick="SubmitQuestion" type="button">&rarr;</button>
+                                        </div>
+
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="input-group mb-3">
+                                        <div class="input-group-prepend">
+                                            <button class="btn @(this.round.QType==QuestionTypes.Question?"btn-primary":"brn-outline-primary")" type="button" disabled>Question</button>
+                                        </div>
+
+                                        <div class="input-group-append">
+                                            <button class="btn @(this.round.QType==QuestionTypes.Guess?"btn-primary":"brn-outline-primary")" type="button" disabled>Guess</button>
+                                        </div>
+                                    </div>
+                                    <div class="input-group mb-3">
+
+                                        <input type="text" class="form-control" @bind="question" placeholder="Proposal" aria-label="Proposal" aria-describedby="basic-addon2" disabled>
+                                        <div class="input-group-append">
+                                            <button class="btn btn-outline-primary" type="button" disabled>&rarr;</button>
+                                        </div>
+                                    </div>
+                                }
+                                <div class="result" style="display:flex; justify-content:center; align-items:center">
+                                    <div class="input-group mb-3">
+                                        <div class="input-group-prepend">
+                                            <button class="btn btn-success" disabled>@this.round.PlayerAnswers.Item1.Count</button>
+                                        </div>
+
+                                        <div class="input-group-append">
+                                            <button class="btn btn-danger" disabled>@this.round.PlayerAnswers.Item2.Count</button>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
                         </div>
                     }
                     else
                     {
+                        <div class="flex-column">
+                            @if (this.round.QType == QuestionTypes.Guess)
+                            {
+                                <div class="guess">
+                                    <b>Guess: </b>@round.Question
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="question">
+                                    <b>Question: </b>@round.Question
+                                </div>
+                            }
+                            @if (!String.IsNullOrWhiteSpace(this.round.Question))
+                            {
+                                <div class="result" style="display:flex; justify-content:center; align-items:center; width:100%; min-height:300px;">
+                                    <div class="input-group mb-3">
+                                        <div class="input-group-prepend">
+                                            <button class="btn @(!this.round.PlayerAnswers.Item1.Contains(_player)?"btn-outline-success":"btn-success")" @onclick="()=> { SubmitWhatYouThink(true);  }">@this.round.PlayerAnswers.Item1.Count</button>
+                                        </div>
 
+                                        <div class="input-group-append">
+                                            <button class="btn @(!this.round.PlayerAnswers.Item2.Contains(_player)?"btn-outline-danger":"btn-danger")" @onclick="()=> { SubmitWhatYouThink(false); }">@this.round.PlayerAnswers.Item2.Count</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div>Waiting for question ...</div>
+                            }
+                        </div>
                     }
                 </div>
-              
+
             </div>
             <div class="col-12 col-sm-3" style="border-left:1px solid gray">
                 <div class="chat" style="display:flex; flex-direction:column-reverse; height:80vh; overflow-y:scroll">
@@ -91,9 +188,25 @@
 </div>
 
 @code {
+    private string question;
 
+    public void SubmitQuestion()
+    {
+        this.round.Question = this.question;
+    }
+    public void BtnQuestionClick()
+    {
+        this.round.QType = QuestionTypes.Question;
+    }
+    public void BtnGuessClick()
+    {
+        this.round.QType = QuestionTypes.Guess;
+    }
 
-
+    public void SubmitWhatYouThink(bool thinksyes)
+    {
+        this.round.Answer(_player, thinksyes);
+    }
 
 
     private Game game;
@@ -115,7 +228,7 @@
     private async Task Init()
     {
         this.game = this.GameManager.GetGame(Id);
-
+        this.round = game.Round;
         if (game == null)
         {
             GameDoesNotExist();

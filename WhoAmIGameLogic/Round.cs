@@ -13,7 +13,7 @@ namespace WhoAmIGameLogic
     {
         private Player _currentPlayer;
         private string _question;
-        private QuestionTypes _qtype = QuestionTypes.Guess;
+        private QuestionTypes _qtype = QuestionTypes.Question;
         private int _timeremaining;
 
         public bool RoundFinished { get; private set; }
@@ -23,7 +23,7 @@ namespace WhoAmIGameLogic
             }
             set {
                 _timeremaining = value;
-                StateChanged?.Invoke(null, EventArgs.Empty);
+                StateChanged?.Invoke(this, EventArgs.Empty);
             }
         }
 
@@ -41,7 +41,7 @@ namespace WhoAmIGameLogic
             }
             set {
                 this._currentPlayer = value;
-                StateChanged?.Invoke(null, EventArgs.Empty);
+                StateChanged?.Invoke(this, EventArgs.Empty);
             }
         }
 
@@ -51,7 +51,7 @@ namespace WhoAmIGameLogic
             }
             set {
                 this._question = value;
-                StateChanged?.Invoke(null, EventArgs.Empty);
+                StateChanged?.Invoke(this, EventArgs.Empty);
             }
         }
         public QuestionTypes QType {
@@ -60,7 +60,7 @@ namespace WhoAmIGameLogic
             }
             set {
                 this._qtype = value;
-                StateChanged?.Invoke(null, EventArgs.Empty);
+                StateChanged?.Invoke(this, EventArgs.Empty);
             }
         }
 
@@ -82,9 +82,9 @@ namespace WhoAmIGameLogic
             {
                 item1.Remove(player);
             }
-            if (item1.Count > ((double)PlayerCount) / 2 || item.Count > ((double)PlayerCount) / 2)
+            if (item1.Count > ((double)PlayerCount - 1) / 2 || item.Count > ((double)PlayerCount - 1) / 2)
                 RoundFinished = true;
-            StateChanged?.Invoke(null, EventArgs.Empty);
+            StateChanged?.Invoke(this, EventArgs.Empty);
 
         }
 

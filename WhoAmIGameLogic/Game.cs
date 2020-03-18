@@ -49,9 +49,9 @@ namespace WhoAmIGameLogic
             GameStarted?.Invoke(null, EventArgs.Empty);
 
 
-            while (!AllPlayersFinished())
+            while (NotAllPlayersFinished())
             {
-                foreach (var player in this._players)
+                foreach (var player in this._players.Where(player => !player.CorrectGuess))
                 {
                     do
                     {
@@ -59,27 +59,41 @@ namespace WhoAmIGameLogic
                         {
                             CurrentPlayer = player,
                             PlayerCount = _players.Count,
-                            TimeRemaining = 20,
+                            TimeRemaining = 30,
                         };
-
+                        Round.StateChanged += (obj, ev) =>
+                        {
+                            if (obj == this.Round)
+                                StateChanged?.Invoke(obj, ev);
+                        };
+                        StateChanged?.Invoke(null, EventArgs.Empty);
                         while (this.Round.TimeRemaining > 0 && !this.Round.RoundFinished)
                         {
                             await Task.Delay(1000);
                             this.Round.TimeRemaining -= 1;
                         }
 
-
+                        if (String.IsNullOrWhiteSpace(this.Round.Question))
+                            break;
 
                         player.Guesses.Add(new Tuple<string, bool>(this.Round.Question, this.Round.PlayerAnswers.Item1.Count > this.Round.PlayerAnswers.Item2.Count));
+                        if (this.Round.PlayerAnswers.Item1.Count > this.Round.PlayerAnswers.Item2.Count && this.Round.QType == QuestionTypes.Guess)
+                        {
+                            // now the player has won, since he had a correct guess
+                            player.CorrectGuess = true;
+
+                            break;
+                        }
+                        StateChanged?.Invoke(null, EventArgs.Empty);
                     } while (this.Round.PlayerAnswers.Item1.Count > this.Round.PlayerAnswers.Item2.Count);
                 }
             }
-
+            GameFinished?.Invoke(null, EventArgs.Empty);
 
 
         }
 
-        private bool AllPlayersFinished()
+        private bool NotAllPlayersFinished()
         {
             return Players.Any((player) =>
             {
@@ -92,5 +106,6 @@ namespace WhoAmIGameLogic
         public event EventHandler GameStarted;
         public event EventHandler PlayerAdded;
         public event EventHandler StateChanged;
+        public event EventHandler GameFinished;
     }
 }

@@ -164,7 +164,8 @@ else
 
     public void ProposeName(Player player, string proposal, int i)
     {
-        player.ProposeRole(proposal, _player);
+        if (!String.IsNullOrWhiteSpace(proposal))
+            player.ProposeRole(proposal, _player);
     }
 
     class Container<T>
