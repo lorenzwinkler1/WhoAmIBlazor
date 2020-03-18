@@ -9,34 +9,80 @@
 <div class="container-lg">
     @if (game != null)
     {
-    <div class="row" style="min-height:500px">
-        <div class="col-12 col-sm-3">
+        <div class="row" style="min-height:500px">
+            <div class="col-12 col-sm-3" style="border-right:1px solid lightgray">
+                <div class="flex-column">
+                    @foreach (var player in this.game.Players)
+                    {
+                        <div class="card mb-3" style="@(player==this.game.Round.CurrentPlayer?"border-color:green":"")">
+                            <div class="row no-gutters">
+                                <div class="col-md-4 bg-danger">
+                                </div>
 
-        </div>
-        <div class="col-12 col-sm-6">
+                                @if (player == _player)
+                                {
+                                    <div class="col-md-8">
+                                        <div class="card-body text-primary">
+                                            <h5 class="card-title">@player.DisplayName (you)</h5>
+                                            <p class="card-text">Unknown</p>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="col-md-8">
+                                        <div class="card-body">
+                                            <h5 class="card-title">@player.DisplayName</h5>
+                                            <p class="card-text">@player.RoleName</p>
+                                        </div>
+                                    </div>
+                                }
 
-        </div>
-        <div class="col-12 col-sm-3">
-            <div class="chat" style="display:flex; flex-direction:column-reverse; height:80vh; overflow-y:scroll">
-                @foreach (var item in this.game.Chat.Messages)
-                {
 
-                    <div class="chatitem" style="margin-top:20px; background-color:@(item.Item1 == _player ? "lightgreen" : "none")">
-                        <b>@item.Item1.DisplayName: </b>
-                        <span class="msg">@item.Item2</span>
-                    </div>
-                }
+                            </div>
+                        </div>
+                    }
+                </div>
             </div>
-            <div class="chat-input">
-                <div class="input-group mb-3">
-                    <input type="text" class="form-control" @bind="chatmessage" @onkeydown="ChatKeyPressed" placeholder="Proposal" aria-label="Proposal" aria-describedby="basic-addon2">
-                    <div class="input-group-append">
-                        <button class="btn btn-outline-primary" @onclick="SendMessage" type="button">&rarr;</button>
+            <div class="col-12 col-sm-6" style="height:100%">
+                <div class="flex-column" style="height:100%; width:100%">
+                    <div class="countdownround">
+                        <h2 style="width:100%; text-align:center">@this.round.TimeRemaining</h2>
+                    </div>
+                    @if (this.game.Round.CurrentPlayer == _player)
+                    {
+                        <div class="">
+
+                        </div>
+                    }
+                    else
+                    {
+
+                    }
+                </div>
+              
+            </div>
+            <div class="col-12 col-sm-3" style="border-left:1px solid gray">
+                <div class="chat" style="display:flex; flex-direction:column-reverse; height:80vh; overflow-y:scroll">
+                    @foreach (var item in this.game.Chat.Messages)
+                    {
+
+                        <div class="chatitem" style="margin-top:20px; background-color:@(item.Item1 == _player ? "lightgreen" : "none")">
+                            <b>@item.Item1.DisplayName: </b>
+                            <span class="msg">@item.Item2</span>
+                        </div>
+                    }
+                </div>
+                <div class="chat-input">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" @bind="chatmessage" @onkeydown="ChatKeyPressed" placeholder="Proposal" aria-label="Proposal" aria-describedby="basic-addon2">
+                        <div class="input-group-append">
+                            <button class="btn btn-outline-primary" @onclick="SendMessage" type="button">&rarr;</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
     }
     else
     {
@@ -46,11 +92,16 @@
 
 @code {
 
+
+
+
+
     private Game game;
     [Parameter]
     public string Id { get; set; }
 
     private Player _player { get; set; }
+    private Round round { get; set; }
 
     private string chatmessage = "";
 
@@ -68,10 +119,11 @@
         if (game == null)
         {
             GameDoesNotExist();
+            return;
         }
         string playerId = await localStorageService.GetItemAsync<string>(StorageKeys.PlayerId);
         _player = this.game.Players.FirstOrDefault(item => item.PlayerId == playerId);
-
+        MapGameState();
         if (_player == null)
         {
             PlayerNotInGame();
@@ -84,7 +136,7 @@
             await InvokeAsync(() =>
             {
                 StateHasChanged();
-
+                this.round = game.Round;
             });
         };
     }
@@ -111,5 +163,20 @@
             SendMessage();
         }
     }
-
+    private void MapGameState()
+    {
+        if (game == null)
+        {
+            NavManager.NavigateTo("/");
+            return;
+        }
+        if (game.GameState == GameState.Idle)
+        {
+            NavManager.NavigateTo("/lobby/" + Id);
+        }
+        else if (game.GameState == GameState.Finished)
+        {
+#warning Route to the "Finished"-Page here
+        }
+    }
 }

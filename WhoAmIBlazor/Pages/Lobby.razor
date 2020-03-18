@@ -128,6 +128,7 @@ else
             GameDoesNotExist();
             return;
         }
+        MapGameState();
         string playerId = await localStorageService.GetItemAsync<string>(StorageKeys.PlayerId);
         _player = this.game.Players.FirstOrDefault(item => item.PlayerId == playerId);
 
@@ -145,6 +146,10 @@ else
                 StateHasChanged();
 
             });
+        };
+        this.game.GameStarted += (obj, ev) =>
+        {
+            NavManager.NavigateTo("/game/" + Id);
         };
     }
 
@@ -176,6 +181,22 @@ else
         {
             player.RoleName = player.RoleProposals.OrderByDescending(item => item.Value.Count).First().Key;
         }
-        NavManager.NavigateTo("/game/" + Id);
+        game.StartGame();
+    }
+    private void MapGameState()
+    {
+        if (game == null)
+        {
+            NavManager.NavigateTo("/");
+            return;
+        }
+        if (game.GameState == GameState.Started)
+        {
+            NavManager.NavigateTo("/game/" + Id);
+        }
+        else if (game.GameState == GameState.Finished)
+        {
+#warning Route to the "Finished"-Page here
+        }
     }
 }

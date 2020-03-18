@@ -41,13 +41,22 @@
     protected override async Task OnInitializedAsync()
     {
         this.game = this.gameManager.GetGame(Id);
+        MapGameState();
+    }
+    private void MapGameState()
+    {
         if (game == null)
         {
-            RouteToRoot();
+            NavigationManager.NavigateTo("/");
+            return;
         }
-        if (game.GameState != GameState.Idle)
+        if (game.GameState == GameState.Started)
         {
-            RouteToRoot();
+            NavigationManager.NavigateTo("/game/" + Id);
+        }
+        else if (game.GameState == GameState.Finished)
+        {
+#warning Route to the "Finished"-Page here
         }
     }
     private void RouteToRoot()

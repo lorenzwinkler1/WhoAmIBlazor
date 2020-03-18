@@ -9,6 +9,9 @@ namespace WhoAmIGameLogic
         public string DisplayName { get; set; }
         public string RoleName { get; set; }
         public string PlayerId { get; set; }
+        public bool CorrectGuess { get; set; }
+        public List<Tuple<string, bool>> Guesses { get; set; }
+
 
         public IEnumerable<KeyValuePair<string, List<Player>>> RoleProposals { get => roleProposals; }
 
